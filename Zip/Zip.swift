@@ -51,10 +51,10 @@ public enum ZipCompression: Int {
 /// Data in memory that will be archived as a file.
 public struct ArchiveFile {
     var filename:String
-    var data:NSData
+    var data:Data
     var modifiedTime:Date?
 
-    public init(filename:String, data:NSData, modifiedTime:Date?) {
+    public init(filename:String, data:Data, modifiedTime:Date?) {
         self.filename = filename
         self.data = data
         self.modifiedTime = modifiedTime
@@ -402,7 +402,7 @@ public class Zip {
         var totalSize: Int = 0
 
         for archiveFile in archiveFiles {
-            totalSize += archiveFile.data.length
+            totalSize += archiveFile.data.count
         }
 
         let progressTracker = Progress(totalUnitCount: Int64(totalSize))
@@ -416,7 +416,7 @@ public class Zip {
         for archiveFile in archiveFiles {
 
             // Skip empty data
-            if archiveFile.data.length == 0 {
+            if archiveFile.data.count == 0 {
                 continue
             }
 
@@ -453,11 +453,13 @@ public class Zip {
                                  Z_DEFAULT_STRATEGY,
                                  password,
                                  0)
-            zipWriteInFileInZip(zip, archiveFile.data.bytes, UInt32(archiveFile.data.length))
+			archiveFile.data.withUnsafeBytes { (bytes: UnsafePointer<UInt8>) -> Void in
+				zipWriteInFileInZip(zip, bytes, UInt32(archiveFile.data.count))
+			}
             zipCloseFileInZip(zip)
 
             // Update progress handler
-            currentPosition += archiveFile.data.length
+            currentPosition += archiveFile.data.count
 
             if let progressHandler = progress{
                 progressHandler((Double(currentPosition/totalSize)))
